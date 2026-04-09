@@ -1,0 +1,21 @@
+{
+  "name": "sky-sea-lens",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Global traffic tracker (ships first, air later)",
+  "workspaces": [
+    "services/*",
+    "packages/*",
+    "web"
+  ],
+  "scripts": {
+    "build": "npm run build -ws --if-present",
+    "lint": "npm run lint -ws --if-present",
+    "start:api": "npm --workspace @skysealens/api run start",
+    "start:ingest-ships": "npm --workspace @skysealens/ingest-ships run start",
+    "start:web": "npm --workspace @skysealens/web run start"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

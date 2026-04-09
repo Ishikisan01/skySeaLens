@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SkySeaLens - Vessel Traffic</title>
+    <link href="https://unpkg.com/maplibre-gl@4.3.2/dist/maplibre-gl.css" rel="stylesheet" />
+    <style>
+      html,
+      body {
+        margin: 0;
+        height: 100%;
+        font-family: Arial, sans-serif;
+      }
+      #map {
+        position: absolute;
+        inset: 0;
+      }
+      .panel {
+        position: absolute;
+        z-index: 10;
+        top: 12px;
+        left: 12px;
+        background: rgba(0, 0, 0, 0.72);
+        color: #fff;
+        border-radius: 8px;
+        padding: 10px 12px;
+        min-width: 230px;
+      }
+      .footer {
+        position: absolute;
+        z-index: 10;
+        bottom: 12px;
+        left: 12px;
+        background: rgba(255, 255, 255, 0.9);
+        font-size: 12px;
+        border-radius: 8px;
+        padding: 8px 10px;
+      }
+      .error {
+        color: #ff8d8d;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="panel">
+      <div><strong>SkySeaLens</strong> - Live Vessel Traffic</div>
+      <div id="status">Loading...</div>
+      <div id="lastUpdate">-</div>
+      <div id="error" class="error"></div>
+    </div>
+    <div class="footer">
+      Vessel data source: AISStream | Fallback: AISHub
+    </div>
+    <div id="map"></div>
+    <script src="https://unpkg.com/maplibre-gl@4.3.2/dist/maplibre-gl.js"></script>
+    <script src="./main.js"></script>
+  </body>
+</html>

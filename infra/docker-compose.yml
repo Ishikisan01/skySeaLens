@@ -1,0 +1,70 @@
+services:
+  postgres:
+    image: postgis/postgis:16-3.4
+    container_name: skysealens-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: skysealens
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "127.0.0.1:5432:5432"
+    mem_limit: 1200m
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+
+  api:
+    image: node:20-alpine
+    container_name: skysealens-api
+    restart: unless-stopped
+    working_dir: /app
+    command: sh -c "npm ci --omit=dev && node services/api/src/server.js"
+    environment:
+      NODE_ENV: production
+      NODE_OPTIONS: --max-old-space-size=512
+      PORT: 3001
+      DATABASE_URL: postgres://postgres:postgres@postgres:5432/skysealens
+      INGEST_TOKEN: dev-ingest-token
+      RATE_LIMIT_PER_MIN: 120
+    ports:
+      - "127.0.0.1:3001:3001"
+    mem_limit: 500m
+    volumes:
+      - ..:/app
+    depends_on:
+      - postgres
+
+  ingest-ships:
+    image: node:20-alpine
+    container_name: skysealens-ingest-ships
+    restart: unless-stopped
+    working_dir: /app
+    command: sh -c "npm ci --omit=dev && node services/ingest-ships/src/worker.js"
+    environment:
+      NODE_ENV: production
+      NODE_OPTIONS: --max-old-space-size=512
+      API_BASE_URL: http://api:3001
+      INGEST_TOKEN: dev-ingest-token
+      AISSTREAM_API_KEY: ${AISSTREAM_API_KEY}
+      FLUSH_INTERVAL_MS: 5000
+      DEDUPE_WINDOW_MS: 10000
+    mem_limit: 400m
+    volumes:
+      - ..:/app
+    depends_on:
+      - api
+
+  web:
+    image: nginx:alpine
+    container_name: skysealens-web
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8080:80"
+    volumes:
+      - ../web:/usr/share/nginx/html:ro
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - api
+
+volumes:
+  pg_data:

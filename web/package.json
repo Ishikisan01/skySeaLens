@@ -1,0 +1,10 @@
+{
+  "name": "@skysealens/web",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "start": "npx serve . -l 8080",
+    "build": "node -e \"console.log('static web: no build step required')\"",
+    "lint": "node -e \"console.log('no lint configured')\""
+  }
+}

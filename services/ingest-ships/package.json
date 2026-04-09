@@ -1,0 +1,16 @@
+{
+  "name": "@skysealens/ingest-ships",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "src/worker.js",
+  "scripts": {
+    "start": "node src/worker.js",
+    "build": "node -e \"console.log('ingest worker is plain node runtime')\"",
+    "lint": "node -e \"console.log('no lint configured')\""
+  },
+  "dependencies": {
+    "@skysealens/domain": "0.1.0",
+    "dotenv": "^16.4.5",
+    "ws": "^8.18.0"
+  }
+}
