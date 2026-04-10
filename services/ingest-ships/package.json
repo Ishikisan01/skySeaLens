@@ -2,10 +2,10 @@
   "name": "@skysealens/ingest-ships",
   "version": "0.1.0",
   "type": "module",
-  "main": "src/worker.js",
+  "main": "dist/worker.js",
   "scripts": {
-    "start": "node src/worker.js",
-    "build": "node -e \"console.log('ingest worker is plain node runtime')\"",
+    "start": "node dist/worker.js",
+    "build": "tsc -p tsconfig.json",
     "lint": "node -e \"console.log('no lint configured')\""
   },
   "dependencies": {

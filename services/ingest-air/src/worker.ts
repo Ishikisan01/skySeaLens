@@ -7,7 +7,7 @@ const adapter = new OpenSkyAdapter({
   password: process.env.OPENSKY_PASSWORD
 });
 
-async function runOnce() {
+async function runOnce(): Promise<void> {
   const data = await adapter.fetchStates();
   const states = Array.isArray(data?.states) ? data.states : [];
   const normalized = states.map(normalizeOpenSkyStateVector).filter((a) => a.lat != null && a.lon != null);

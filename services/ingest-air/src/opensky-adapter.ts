@@ -1,14 +1,47 @@
 import { AirSourceAdapter } from "@skysealens/domain/src/index.js";
 
+interface OpenSkyAdapterConfig {
+  baseUrl?: string;
+  username?: string;
+  password?: string;
+}
+
+interface OpenSkyStatesResponse {
+  states?: unknown[][];
+}
+
+export interface NormalizedAircraft {
+  icao24: string | null;
+  callsign: string | null;
+  country: string | null;
+  timestamp: Date;
+  lon: number | null;
+  lat: number | null;
+  altitude: number | null;
+  onGround: boolean;
+  velocity: number | null;
+  track: number | null;
+  source: string;
+}
+
 export class OpenSkyAdapter extends AirSourceAdapter {
-  constructor({ baseUrl, username, password }) {
+  baseUrl: string;
+  username?: string;
+  password?: string;
+
+  constructor({ baseUrl, username, password }: OpenSkyAdapterConfig) {
     super();
     this.baseUrl = baseUrl || "https://opensky-network.org/api";
     this.username = username;
     this.password = password;
   }
 
-  async fetchStates({ lamin, lomin, lamax, lomax } = {}) {
+  async fetchStates({
+    lamin,
+    lomin,
+    lamax,
+    lomax
+  }: { lamin?: number; lomin?: number; lamax?: number; lomax?: number } = {}): Promise<OpenSkyStatesResponse> {
     const qs = new URLSearchParams();
     if (lamin != null) qs.set("lamin", String(lamin));
     if (lomin != null) qs.set("lomin", String(lomin));
@@ -16,7 +49,7 @@ export class OpenSkyAdapter extends AirSourceAdapter {
     if (lomax != null) qs.set("lomax", String(lomax));
 
     const url = `${this.baseUrl}/states/all${qs.size ? `?${qs}` : ""}`;
-    const headers = {};
+    const headers: Record<string, string> = {};
     if (this.username && this.password) {
       headers.Authorization = `Basic ${Buffer.from(`${this.username}:${this.password}`).toString("base64")}`;
     }
@@ -24,18 +57,18 @@ export class OpenSkyAdapter extends AirSourceAdapter {
     if (!resp.ok) {
       throw new Error(`OpenSky request failed (${resp.status})`);
     }
-    return resp.json();
+    return (await resp.json()) as OpenSkyStatesResponse;
   }
 }
 
-export function normalizeOpenSkyStateVector(stateVector = []) {
+export function normalizeOpenSkyStateVector(stateVector: unknown[] = []): NormalizedAircraft {
   // OpenSky vector reference:
   // [icao24, callsign, origin_country, time_position, last_contact, lon, lat, baro_altitude, on_ground, velocity, true_track, ...]
   return {
-    icao24: stateVector[0] || null,
-    callsign: stateVector[1]?.trim() || null,
-    country: stateVector[2] || null,
-    timestamp: stateVector[4] ? new Date(stateVector[4] * 1000) : new Date(),
+    icao24: (stateVector[0] as string | undefined) || null,
+    callsign: (stateVector[1] as string | undefined)?.trim() || null,
+    country: (stateVector[2] as string | undefined) || null,
+    timestamp: stateVector[4] ? new Date(Number(stateVector[4]) * 1000) : new Date(),
     lon: typeof stateVector[5] === "number" ? stateVector[5] : null,
     lat: typeof stateVector[6] === "number" ? stateVector[6] : null,
     altitude: typeof stateVector[7] === "number" ? stateVector[7] : null,

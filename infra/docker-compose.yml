@@ -18,7 +18,7 @@ services:
     container_name: skysealens-api
     restart: unless-stopped
     working_dir: /app
-    command: sh -c "npm ci --omit=dev && node services/api/src/server.js"
+    command: sh -c "npm ci && npm run build && node services/api/dist/server.js"
     environment:
       NODE_ENV: production
       NODE_OPTIONS: --max-old-space-size=512
@@ -39,7 +39,7 @@ services:
     container_name: skysealens-ingest-ships
     restart: unless-stopped
     working_dir: /app
-    command: sh -c "npm ci --omit=dev && node services/ingest-ships/src/worker.js"
+    command: sh -c "npm ci && npm run build && node services/ingest-ships/dist/worker.js"
     environment:
       NODE_ENV: production
       NODE_OPTIONS: --max-old-space-size=512
