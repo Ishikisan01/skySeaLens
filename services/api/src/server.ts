@@ -1,9 +1,18 @@
 import "dotenv/config";
 import cors from "cors";
-import express from "express";
+import express, { type NextFunction, type Request, type Response } from "express";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
-import { initDb, pool, updateSourceHealth, upsertAircraft, upsertVessel } from "./db.js";
+import {
+  initDb,
+  pool,
+  type AircraftUpsertPayload,
+  type SourceHealthPayload,
+  type VesselUpsertPayload,
+  updateSourceHealth,
+  upsertAircraft,
+  upsertVessel
+} from "./db.js";
 import { getJson, setJson } from "./cache.js";
 
 const app = express();
@@ -20,11 +29,11 @@ app.use(
   })
 );
 
-app.get("/api/v1/health", (_req, res) => {
+app.get("/api/v1/health", (_req: Request, res: Response) => {
   res.json({ status: "ok", service: "api", ts: new Date().toISOString() });
 });
 
-app.get("/api/v1/health/sources", async (_req, res, next) => {
+app.get("/api/v1/health/sources", async (_req: Request, res: Response, next: NextFunction) => {
   try {
     const { rows } = await pool.query(
       "SELECT source, last_message_at, ingest_rate_per_min, error_rate, status, updated_at FROM source_health ORDER BY source"
@@ -35,7 +44,7 @@ app.get("/api/v1/health/sources", async (_req, res, next) => {
   }
 });
 
-app.get("/api/v1/metrics", async (_req, res, next) => {
+app.get("/api/v1/metrics", async (_req: Request, res: Response, next: NextFunction) => {
   try {
     const [{ count: vesselCount }] = (await pool.query("SELECT COUNT(*)::int AS count FROM vessel_latest")).rows;
     const sourceRows = (
@@ -52,7 +61,7 @@ app.get("/api/v1/metrics", async (_req, res, next) => {
   }
 });
 
-app.get("/api/v1/vessels/:mmsi", async (req, res, next) => {
+app.get("/api/v1/vessels/:mmsi", async (req: Request, res: Response, next: NextFunction) => {
   try {
     const mmsi = Number(req.params.mmsi);
     const { rows } = await pool.query("SELECT * FROM vessel_latest WHERE mmsi = $1 LIMIT 1", [mmsi]);
@@ -63,7 +72,7 @@ app.get("/api/v1/vessels/:mmsi", async (req, res, next) => {
   }
 });
 
-app.get("/api/v1/vessels", async (req, res, next) => {
+app.get("/api/v1/vessels", async (req: Request, res: Response, next: NextFunction) => {
   try {
     const [minLon, minLat, maxLon, maxLat] = String(req.query.bbox || "")
       .split(",")
@@ -73,7 +82,7 @@ app.get("/api/v1/vessels", async (req, res, next) => {
     }
     const zoom = Number(req.query.zoom || 3);
     const cacheKey = `vessels:${minLon}:${minLat}:${maxLon}:${maxLat}:${zoom}`;
-    const cached = await getJson(cacheKey);
+    const cached = await getJson<Record<string, unknown>>(cacheKey);
     if (cached) return res.json({ ...cached, cache: "hit" });
 
     const limit = zoom <= 3 ? 1200 : zoom <= 5 ? 2500 : 5000;
@@ -95,7 +104,7 @@ app.get("/api/v1/vessels", async (req, res, next) => {
   }
 });
 
-app.get("/api/v1/aircraft", async (req, res, next) => {
+app.get("/api/v1/aircraft", async (req: Request, res: Response, next: NextFunction) => {
   try {
     const [minLon, minLat, maxLon, maxLat] = String(req.query.bbox || "")
       .split(",")
@@ -119,17 +128,17 @@ app.get("/api/v1/aircraft", async (req, res, next) => {
   }
 });
 
-app.post("/internal/v1/vessels/upsert", async (req, res, next) => {
+app.post("/internal/v1/vessels/upsert", async (req: Request, res: Response, next: NextFunction) => {
   try {
     if (req.headers.authorization !== `Bearer ${ingestToken}`) {
       return res.status(401).json({ error: "Unauthorized" });
     }
-    const vessels = Array.isArray(req.body?.vessels) ? req.body.vessels : [];
+    const vessels = Array.isArray(req.body?.vessels) ? (req.body.vessels as VesselUpsertPayload[]) : [];
     for (const vessel of vessels) {
       await upsertVessel(vessel);
     }
     if (req.body?.sourceHealth) {
-      await updateSourceHealth(req.body.sourceHealth);
+      await updateSourceHealth(req.body.sourceHealth as SourceHealthPayload);
     }
     res.json({ accepted: vessels.length });
   } catch (err) {
@@ -137,17 +146,17 @@ app.post("/internal/v1/vessels/upsert", async (req, res, next) => {
   }
 });
 
-app.post("/internal/v1/aircraft/upsert", async (req, res, next) => {
+app.post("/internal/v1/aircraft/upsert", async (req: Request, res: Response, next: NextFunction) => {
   try {
     if (req.headers.authorization !== `Bearer ${ingestToken}`) {
       return res.status(401).json({ error: "Unauthorized" });
     }
-    const aircraft = Array.isArray(req.body?.aircraft) ? req.body.aircraft : [];
+    const aircraft = Array.isArray(req.body?.aircraft) ? (req.body.aircraft as AircraftUpsertPayload[]) : [];
     for (const row of aircraft) {
       await upsertAircraft(row);
     }
     if (req.body?.sourceHealth) {
-      await updateSourceHealth(req.body.sourceHealth);
+      await updateSourceHealth(req.body.sourceHealth as SourceHealthPayload);
     }
     res.json({ accepted: aircraft.length });
   } catch (err) {
@@ -155,7 +164,7 @@ app.post("/internal/v1/aircraft/upsert", async (req, res, next) => {
   }
 });
 
-app.use((err, _req, res, _next) => {
+app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
   console.error(err);
   res.status(500).json({ error: "Internal server error" });
 });

@@ -1,7 +1,19 @@
 import WebSocket from "ws";
-import { ShipSourceAdapter, normalizeShipPosition } from "@skysealens/domain/src/index.js";
+import { ShipSourceAdapter, normalizeShipPosition, type NormalizedVessel } from "@skysealens/domain/src/index.js";
+
+interface AdapterStats {
+  received: number;
+  invalid: number;
+  errors: number;
+}
 
 export class AISStreamAdapter extends ShipSourceAdapter {
+  socket: WebSocket | null;
+  reconnectTimer: ReturnType<typeof setTimeout> | null;
+  isStopped: boolean;
+  stats: AdapterStats;
+  lastMessageAt: Date | null;
+
   constructor() {
     super();
     this.socket = null;
@@ -11,25 +23,25 @@ export class AISStreamAdapter extends ShipSourceAdapter {
     this.lastMessageAt = null;
   }
 
-  async start(onMessage) {
+  async start(onMessage: (vessel: NormalizedVessel) => void): Promise<void> {
     this.isStopped = false;
     this.#connect(onMessage);
   }
 
-  stop() {
+  stop(): void {
     this.isStopped = true;
     if (this.reconnectTimer) clearTimeout(this.reconnectTimer);
     if (this.socket) this.socket.close();
   }
 
-  #connect(onMessage) {
+  #connect(onMessage: (vessel: NormalizedVessel) => void): void {
     const apiKey = process.env.AISSTREAM_API_KEY;
     if (!apiKey) throw new Error("AISSTREAM_API_KEY is required");
 
     this.socket = new WebSocket("wss://stream.aisstream.io/v0/stream");
 
     this.socket.on("open", () => {
-      this.socket.send(
+      this.socket?.send(
         JSON.stringify({
           APIKey: apiKey,
           BoundingBoxes: [[[-90, -180], [90, 180]]]
@@ -40,7 +52,7 @@ export class AISStreamAdapter extends ShipSourceAdapter {
     this.socket.on("message", (buf) => {
       this.stats.received += 1;
       this.lastMessageAt = new Date();
-      let parsed = null;
+      let parsed: any = null;
       try {
         parsed = JSON.parse(String(buf));
       } catch (_e) {
@@ -77,7 +89,7 @@ export class AISStreamAdapter extends ShipSourceAdapter {
       }
     });
 
-    this.socket.on("error", (err) => {
+    this.socket.on("error", (err: Error) => {
       this.stats.errors += 1;
       console.error("AISStream socket error:", err.message);
     });

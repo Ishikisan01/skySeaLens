@@ -15,6 +15,14 @@
     "start:ingest-ships": "npm --workspace @skysealens/ingest-ships run start",
     "start:web": "npm --workspace @skysealens/web run start"
   },
+  "devDependencies": {
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.3",
+    "@types/node": "^24.6.0",
+    "@types/pg": "^8.15.5",
+    "@types/ws": "^8.18.1",
+    "typescript": "^5.9.3"
+  },
   "engines": {
     "node": ">=18"
   }

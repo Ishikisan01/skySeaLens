@@ -1,10 +1,46 @@
 import { Pool } from "pg";
 
+export interface VesselUpsertPayload {
+  mmsi: number;
+  imo: string | null;
+  name: string | null;
+  lat: number;
+  lon: number;
+  sog: number | null;
+  cog: number | null;
+  heading: number | null;
+  nav_status: string | null;
+  timestamp: Date | string;
+  source: string;
+}
+
+export interface AircraftUpsertPayload {
+  icao24: string;
+  callsign: string | null;
+  country: string | null;
+  lat: number;
+  lon: number;
+  altitude: number | null;
+  velocity: number | null;
+  track: number | null;
+  onGround: boolean;
+  timestamp: Date | string;
+  source: string;
+}
+
+export interface SourceHealthPayload {
+  source: string;
+  lastMessageAt: Date | string | null;
+  ingestRatePerMin: number;
+  errorRate: number;
+  status: string;
+}
+
 const connectionString = process.env.DATABASE_URL || "postgres://postgres:postgres@127.0.0.1:5432/skysealens";
 
 export const pool = new Pool({ connectionString });
 
-export async function initDb() {
+export async function initDb(): Promise<void> {
   await pool.query(`
     CREATE EXTENSION IF NOT EXISTS postgis;
 
@@ -54,7 +90,7 @@ export async function initDb() {
   `);
 }
 
-export async function upsertVessel(vessel) {
+export async function upsertVessel(vessel: VesselUpsertPayload): Promise<void> {
   const query = `
     INSERT INTO vessel_latest
       (mmsi, imo, name, lat, lon, sog, cog, heading, nav_status, "timestamp", source, geom)
@@ -88,7 +124,7 @@ export async function upsertVessel(vessel) {
   ]);
 }
 
-export async function updateSourceHealth(payload) {
+export async function updateSourceHealth(payload: SourceHealthPayload): Promise<void> {
   await pool.query(
     `
     INSERT INTO source_health (source, last_message_at, ingest_rate_per_min, error_rate, status, updated_at)
@@ -104,7 +140,7 @@ export async function updateSourceHealth(payload) {
   );
 }
 
-export async function upsertAircraft(aircraft) {
+export async function upsertAircraft(aircraft: AircraftUpsertPayload): Promise<void> {
   await pool.query(
     `
     INSERT INTO aircraft_latest
